@@ -33,11 +33,25 @@ enum InterviewResult {
 
 enum OfferStatus {
   DRAFT
+  PENDING_APPROVAL
+  PENDING_SENIOR_APPROVAL
   APPROVED
   SENT
   ACCEPTED
   REJECTED
   WITHDRAWN
+}
+
+enum ApprovalLevel {
+  LEVEL_1
+  LEVEL_2
+  LEVEL_3
+}
+
+enum ApprovalDecision {
+  APPROVE
+  REJECT
+  ESCALATE
 }
 
 enum InterviewType {
@@ -132,18 +146,49 @@ model Interview {
 }
 
 model Offer {
-  id          Int         @id @default(autoincrement())
-  candidateId Int
-  jobId       Int
-  salary      Decimal
-  startDate   DateTime
-  status      OfferStatus
-  approverId  Int
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  candidate   Candidate   @relation(fields: [candidateId], references: [id])
-  job         Job         @relation(fields: [jobId], references: [id])
-  approver    User        @relation("OfferApprover", fields: [approverId], references: [id])
+  id                   Int                @id @default(autoincrement())
+  candidateId          Int
+  jobId                Int
+  salary               Decimal
+  startDate            DateTime
+  status               OfferStatus
+  approverId           Int
+  currentApprovalLevel ApprovalLevel?
+  approvalReason       String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  candidate            Candidate          @relation(fields: [candidateId], references: [id])
+  job                  Job                @relation(fields: [jobId], references: [id])
+  approver             User               @relation("OfferApprover", fields: [approverId], references: [id])
+  approvalHistories    OfferApprovalHistory[]
+}
+
+model SalaryApprovalRule {
+  id             Int           @id @default(autoincrement())
+  department     String?
+  minSalary      Decimal
+  maxSalary      Decimal?
+  approvalLevel  ApprovalLevel
+  approverRole   UserRole
+  approverId     Int?
+  approver       User?         @relation(fields: [approverId], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([department, minSalary, maxSalary])
+}
+
+model OfferApprovalHistory {
+  id              Int               @id @default(autoincrement())
+  offerId         Int
+  approverId      Int
+  approvalLevel   ApprovalLevel
+  decision        ApprovalDecision
+  comment         String?
+  salaryAtTime    Decimal
+  createdAt       DateTime          @default(now())
+  offer           Offer             @relation(fields: [offerId], references: [id])
+  approver        User              @relation(fields: [approverId], references: [id])
 }
 
 model AuditLog {
